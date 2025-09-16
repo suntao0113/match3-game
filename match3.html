@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,11 +15,21 @@ let grid = [];
 let cols = 8;
 let rows = 8;
 let tileSize = 50;
-let colors = ['red', 'blue', 'green', 'yellow'];
+let tiles = []; // Array to store loaded images
 let score = 0;
 let selectedTile = null;
 let gameOver = false;
-let flashTiles = []; // Store tiles to flash
+let flashTiles = [];
+
+function preload() {
+  try {
+    for (let i = 0; i < 7; i++) {
+      tiles[i] = loadImage(`tile${i + 1}.png`); // Load tile1.png to tile7.png
+    }
+  } catch (e) {
+    console.error("Preload error:", e);
+  }
+}
 
 function setup() {
   try {
@@ -35,10 +46,12 @@ function draw() {
   drawGrid();
   textSize(20);
   textAlign(LEFT);
+  fill(255, 69, 0); // Orange text for score
   text(`Score: ${score}`, cols * tileSize + 10, 50);
   if (gameOver) {
     textSize(32);
     textAlign(CENTER);
+    fill(255, 0, 0); // Red for Game Over
     text('Game Over!', width / 2, height / 2);
   }
 }
@@ -70,7 +83,7 @@ function initGrid() {
     for (let i = 0; i < cols; i++) {
       grid[i] = [];
       for (let j = 0; j < rows; j++) {
-        grid[i][j] = floor(random(colors.length));
+        grid[i][j] = floor(random(7)); // Random value 0-6 for 7 tiles
       }
     }
     removeInitialMatches();
@@ -83,13 +96,15 @@ function drawGrid() {
   try {
     for (let i = 0; i < cols; i++) {
       for (let j = 0; j < rows; j++) {
-        if (grid[i][j] >= 0 && grid[i][j] < colors.length) {
+        if (grid[i][j] >= 0 && grid[i][j] < 7) {
+          let x = i * tileSize + tileSize / 2 - 20; // Center the 40x40 image
+          let y = j * tileSize + tileSize / 2 - 20;
           if (flashTiles.some(t => t.col === i && t.row === j)) {
-            fill(255); // Flash with white
+            tint(255); // Flash with white
           } else {
-            fill(colors[grid[i][j]]);
+            noTint();
           }
-          rect(i * tileSize, j * tileSize, tileSize - 2, tileSize - 2);
+          image(tiles[grid[i][j]], x, y, 40, 40); // Display 40x40 tile
         } else {
           fill(150); // Gray for invalid states
           rect(i * tileSize, j * tileSize, tileSize - 2, tileSize - 2);
@@ -98,10 +113,12 @@ function drawGrid() {
       }
     }
     if (selectedTile) {
+      let x = selectedTile.col * tileSize + tileSize / 2;
+      let y = selectedTile.row * tileSize + tileSize / 2;
       stroke(255);
       strokeWeight(4);
       noFill();
-      rect(selectedTile.col * tileSize, selectedTile.row * tileSize, tileSize - 2, tileSize - 2);
+      ellipse(x, y, tileSize - 5, tileSize - 5);
       strokeWeight(1);
     }
   } catch (e) {
@@ -182,26 +199,22 @@ function handleMatches() {
     }
     
     if (matched.size > 0) {
-      // Convert matched set to array of objects for flashing
       flashTiles = Array.from(matched).map(pos => {
         let [i, j] = pos.split(',').map(Number);
         return {col: i, row: j};
       });
       
-      // Flash twice with 1-second intervals, then eliminate
       let flashCount = 0;
       let flashInterval = setInterval(() => {
         flashCount++;
         if (flashCount === 2) {
           clearInterval(flashInterval);
-          // Eliminate tiles
           matched.forEach(pos => {
             let [i, j] = pos.split(',').map(Number);
             grid[i][j] = -1;
             score += 10;
           });
           
-          // Drop tiles and fill
           for (let i = 0; i < cols; i++) {
             let empty = [];
             for (let j = rows - 1; j >= 0; j--) {
@@ -213,27 +226,25 @@ function handleMatches() {
               }
             }
             for (let j of empty) {
-              grid[i][j] = floor(random(colors.length));
+              grid[i][j] = floor(random(7)); // Random 0-6 for 7 tiles
             }
           }
           
-          // Force fill any remaining -1
           for (let i = 0; i < cols; i++) {
             for (let j = 0; j < rows; j++) {
               if (grid[i][j] === -1) {
-                grid[i][j] = floor(random(colors.length));
+                grid[i][j] = floor(random(7));
                 console.warn("Forced fill at", i, j);
               }
             }
           }
           
-          // Check for more matches
           flashTiles = [];
           if (checkMatches()) {
-            setTimeout(handleMatches, 500); // Slight delay for visual feedback
+            setTimeout(handleMatches, 500);
           }
         }
-      }, 1000); // Flash every 1 second
+      }, 1000);
     }
   } catch (e) {
     console.error("Handle matches error:", e);
@@ -247,7 +258,7 @@ function removeInitialMatches() {
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
           if (checkMatchesAt(i, j)) {
-            grid[i][j] = floor(random(colors.length));
+            grid[i][j] = floor(random(7));
           }
         }
       }
