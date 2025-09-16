@@ -1,12 +1,24 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <title>Match-3 Game</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.10.0/p5.min.js"></script>
   <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f0f0; }
-    canvas { border: 2px solid #333; }
+    body { 
+      margin: 0; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+      background: #f0f0f0; 
+      overflow: hidden; /* Prevent scrolling */
+    }
+    canvas { 
+      border: 2px solid #333; 
+      max-width: 100%; 
+      max-height: 100vh; 
+      touch-action: none; /* Disable default touch behavior */
+    }
   </style>
 </head>
 <body>
@@ -54,6 +66,32 @@ function draw() {
     fill(255, 0, 0); // Red for Game Over
     text('Game Over!', width / 2, height / 2);
   }
+}
+
+function touchStarted() {
+  if (gameOver) return;
+  try {
+    let touch = touches[0];
+    if (!touch) return; // No touch detected
+    let col = floor(touch.x / tileSize);
+    let row = floor(touch.y / tileSize);
+    if (col >= 0 && col < cols && row >= 0 && row < rows) {
+      if (selectedTile) {
+        if (isAdjacent(selectedTile, {col, row})) {
+          swapTiles(selectedTile, {col, row});
+          selectedTile = null;
+        } else {
+          selectedTile = {col, row};
+        }
+      } else {
+        selectedTile = {col, row};
+      }
+    }
+    console.log("Touch detected at", touch.x, touch.y); // Debug touch position
+  } catch (e) {
+    console.error("Touch started error:", e);
+  }
+  return false; // Prevent default touch behavior (e.g., scrolling)
 }
 
 function mousePressed() {
